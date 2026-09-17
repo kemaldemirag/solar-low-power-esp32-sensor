@@ -3,7 +3,7 @@
 > Portfolio reference work derived from public job postings (CONTEXT-BOUND / PLANNED). Source jobs are requirements inspiration only; no client execution, fabrication, bench test or production claim is made.
 
 **Status:** INITIAL / EVIDENCE REQUIRED · **Workspace phase:** Phase 1 · **Source:** JOB-01
-**Handoff ID:** `CAN-ENERGY-PORTFOLIO-2026-09-15` · **Drive folder:** `Projelerim / Elektrik-Elektronik Mühendisliği / 15.09.2026 / 002-Proje Çıktıları / 01_solar_low_power_sensor`
+**Handoff ID:** `CAN-ENERGY-PORTFOLIO-2026-09-15`
 
 ## Goal
 Design a credible solar-powered low-power embedded sensor node inspired by JOB-01.
