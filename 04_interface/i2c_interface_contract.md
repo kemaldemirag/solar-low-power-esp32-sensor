@@ -1,6 +1,6 @@
 # PROJECT-01 I2C Interface Contract — INITIAL
 
-Per the portfolio workflow governance report (P01-04). Defines the behavioral contract the firmware and hardware design must satisfy for the sensor I2C interface. This is a *contract*, not a component selection: every numeric value is left `OPEN` until a specific sensor/part is chosen (see `02_requirements/reference_classification.md`, REF-11) — no placeholder number is recorded in its place, per `docs/00_shared/evidence_policy.md`.
+Per the portfolio workflow governance report (P01-04). Defines the behavioral contract the firmware and hardware design must satisfy for the sensor I2C interface. The sensor is now selected (Bosch BME280, `06_decisions/decision_register.md` DEC-06) and voltage domain, address and stabilization delay are `SOURCE_SUPPORTED` from its primary datasheet (2026-09-17 update). The pull-up value remains `OPEN` pending REF-08 (UM10204) — no placeholder number is recorded in its place, per `docs/00_shared/evidence_policy.md`.
 
 Traces to: SOL-006, SOL-009, SOL-010, SOL-011, SOL-012, SOL-013. Candidate scenarios behind each clause are in `03_specification/scenario_matrix.md`.
 
@@ -10,13 +10,13 @@ Covers the single I2C bus between the ESP32 and the sensor(s) it drives, from bu
 
 ## 2. Voltage domain & pull-up strategy (SOL-009)
 
-- The bus operates in a single voltage domain: 3.3 V-only (ESP32-native), no level shifting. **Status: DECISION_SUPPORTED (candidate)** — sensor selected is Bosch BME280 (decision register DEC-06), which per a `WebSearch`-corroborated (not primary-source-read) spec supports a 1.71–3.6 V sensor supply and 1.2–3.6 V interface supply, both spanning 3.3 V. Treat as a candidate until the primary Bosch datasheet is read (GAP-05/GAP-07).
-- Pull-up resistors are fixed values sized for the BME280 and the estimated bus trace capacitance. **Status: OPEN** — actual values still require REF-08 (I2C-bus specification, rise-time limits) and the BME280's input capacitance from its primary datasheet; this contract records the calculation method, not a value.
+- The bus operates in a single voltage domain: 3.3 V-only (ESP32-native), no level shifting. **Status: SOURCE_SUPPORTED (2026-09-17)** — Bosch BME280 datasheet BST-DS002: VDD = 1.71–3.6 V, VDDIO = 1.2–3.6 V, both spanning 3.3 V. GAP-05 closed for this clause.
+- Pull-up resistors are fixed values sized for the BME280 and the estimated bus trace capacitance. **Status: OPEN** — actual values still require REF-08 (I2C-bus specification, rise-time limits) and the BME280's input capacitance, neither of which was supplied; this contract records the calculation method, not a value (GAP-02 still open).
 - The mixed-voltage-domain contingency (§2 original text) no longer applies now that a 3.3 V-compatible sensor is selected; it would only become relevant again if BME280 is later rejected.
 
 ## 3. Address inventory, discovery & initialization (SOL-010)
 
-- **Address inventory:** BME280, one fixed I2C address selected via its SDO strap — 0x76 (SDO=GND) or 0x77 (SDO=VDDIO). **Status: DECISION_SUPPORTED (candidate)** per decision register DEC-06; the exact strap wiring (which address) is an open PCB-level choice, not a protocol ambiguity. Value is `WebSearch`-corroborated, not read from the primary datasheet (GAP-05/GAP-07).
+- **Address inventory:** BME280, one fixed I2C address selected via its SDO strap — 0x76 (SDO=GND) or 0x77 (SDO=VDDIO). **Status: SOURCE_SUPPORTED (2026-09-17)** — confirmed by BST-DS002. The exact strap wiring (which of the two addresses) remains an open PCB-level choice, not a protocol ambiguity.
 - **Discovery sequence (contract, independent of the specific sensor):**
   1. After sensor power rail is enabled and the stabilization delay (§5) has elapsed, the MCU performs a targeted address probe (a single-byte read or a zero-length write) at the sensor's documented fixed address — not a full 0x08–0x77 bus scan, since the address set is known in advance.
   2. A successful ACK at the probe step transitions the sequence to normal initialization (any required configuration-register writes documented in a future sensor-specific addendum).
@@ -42,7 +42,7 @@ Covers the single I2C bus between the ESP32 and the sensor(s) it drives, from bu
 
 ## 6. Power-gating stabilization & bus re-initialization (SOL-013)
 
-- The sensor's power rail is gated off during sleep. On wake, the MCU enables the rail, then waits a stabilization delay before any I2C activity. **Status: OPEN** — the delay's magnitude is not fixed here. BME280 is selected (DEC-06) but its power-on-to-ready time was not found via `WebSearch`; it must equal or exceed that value once read from the primary datasheet (GAP-05/GAP-07). No default delay is assumed.
+- The sensor's power rail is gated off during sleep. On wake, the MCU enables the rail, then waits a stabilization delay before any I2C activity. **Status: SOURCE_SUPPORTED — 2 ms (2026-09-17).** BME280 datasheet BST-DS002: startup to first communication = 2 ms. The stabilization delay must be ≥ 2 ms; GAP-05 closed for this clause.
 - After every power-gating cycle, the ESP32's I2C peripheral is fully re-initialized (§3), not merely resumed from a suspended state — the contract does not rely on peripheral or bus state surviving a sleep cycle.
 - The stabilization delay and the re-initialization step are both mandatory steps in the operational cycle defined in `05_power/power_state_model.md` (P01-05); this contract and that model must stay consistent — a change to one requires reviewing the other.
 
@@ -58,8 +58,8 @@ Covers the single I2C bus between the ESP32 and the sensor(s) it drives, from bu
 
 ## 8. Open items
 
-- Sensor selected (BME280, DEC-06); voltage domain and address are `DECISION_SUPPORTED` candidates (§2, §3), but both remain secondary-source only pending primary-datasheet confirmation (GAP-05/GAP-07).
-- Pull-up resistor value and stabilization-delay magnitude: still `OPEN` — need the primary BME280 datasheet (capacitance, power-on time) and REF-08 (UM10204).
+- Voltage domain, address and stabilization delay: **`SOURCE_SUPPORTED`** (§2, §3, §6 — 2026-09-17 primary-datasheet update).
+- Pull-up resistor value: still `OPEN` — needs REF-08 (UM10204) and the BME280's input capacitance, neither supplied (GAP-02).
 - Consecutive-fault escalation behavior: **decided** (DEC-09, `SENSOR_OFFLINE` after N consecutive faults); N's exact value remains an implementation-time constant, not a hardware requirement.
 - Duplicate-address clause: **decided** `NOT_APPLICABLE` (DEC-08).
 

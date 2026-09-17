@@ -32,10 +32,10 @@ Exactly one pass through this sequence occurs per wake trigger; there is no in-c
 
 | State | Entry condition | Actions | Exit condition | SOL-ID |
 |---|---|---|---|---|
-| `SLEEP` | Previous cycle's `PERIPHERAL_SHUTDOWN` complete, or first boot | ESP32 in deep sleep; all gated rails off | Wake trigger fires | SOL-007 |
+| `SLEEP` | Previous cycle's `PERIPHERAL_SHUTDOWN` complete, or first boot | ESP32 in Deep-sleep with RTC timer + RTC memory retained (10 µA, SOURCE_SUPPORTED — see §3); all gated rails off | Wake trigger fires | SOL-007 |
 | `WAKE` | Wake trigger fires | MCU core resumes; peripherals re-initialize (I2C peripheral configured fresh, per contract §3/§6 — no state assumed to survive sleep) | Peripheral re-init complete | SOL-007, SOL-013 |
 | `SENSOR_POWER_ON` | `WAKE` complete | Enable sensor power-gating rail | Rail enabled | SOL-013 |
-| `STABILIZE` | Rail enabled | Wait for stabilization delay (magnitude `OPEN`, see contract §6 — depends on sensor selection) | Delay elapsed | SOL-013 |
+| `STABILIZE` | Rail enabled | Wait for stabilization delay — SOURCE_SUPPORTED at 2 ms (BME280 startup-to-first-communication, BST-DS002; see contract §6) | Delay elapsed | SOL-013 |
 | `I2C_INIT_DISCOVERY` | Stabilization elapsed | Targeted address probe per contract §3 | ACK → `MEASURE`; NACK/timeout → `FAULT_MARK` | SOL-010, SOL-011 |
 | `FAULT_MARK` | Probe NACK/timeout | Mark this cycle's sensor channel `FAULT` (contract §4); increment the cross-cycle consecutive-fault counter (DEC-09); no in-cycle retry | Immediately → `TELEMETRY` | SOL-011 |
 | `MEASURE` | Probe ACK | Perform sensor measurement(s) — measurement semantics out of scope for PROJECT-01's interface contract | Measurement complete | SOL-006 |
@@ -45,6 +45,8 @@ Exactly one pass through this sequence occurs per wake trigger; there is no in-c
 ## 3. Wake trigger (SOL-007)
 
 **Decided (DEC-07): RTC timer only** — fixed periodic duty cycle, no external interrupt path. The rejected alternative (RTC + GPIO/external interrupt, for periodic-plus-event-driven wake) is recorded in `03_specification/scenario_matrix.md` for traceability but not pursued; revisit only if a future requirement needs event-driven wake.
+
+**Mode correction (2026-09-17, primary-source):** the ESP32 Series Datasheet v5.3 gives three relevant states — Deep-sleep w/ RTC timer + RTC memory = 10 µA, Hibernation w/ RTC timer only = 5 µA, power-off = 1 µA. `SLEEP` in this model uses the **10 µA Deep-sleep-with-RTC-memory mode**, not the lower 5 µA Hibernation mode, because Hibernation discards RTC memory — the only memory that survives ESP32 deep sleep — and DEC-09's cross-cycle consecutive-fault counter (§4) needs exactly that memory to persist across `SLEEP` cycles. Using Hibernation would silently reset the counter every cycle, making the "consecutive" in DEC-09 meaningless; this is a real constraint between two already-made decisions (DEC-07 and DEC-09), not a preference.
 
 The numeric duty-cycle period (the interval between RTC wakes) is not fixed by this decision and remains `OPEN` — see `05_power/power_budget.md` §3/§6.
 
@@ -69,9 +71,9 @@ Per-state duration and current draw feed the board-level sleep-current budget (P
 
 ## 7. Open items
 
-- Wake-trigger source: **decided** (DEC-07, RTC-only); duty-cycle period value still OPEN.
-- Stabilization delay magnitude: OPEN — sensor selected (BME280, DEC-06) but its power-on-time value not found via search (GAP-05/GAP-07).
+- Wake-trigger source and mode: **decided** (DEC-07, RTC-only, Deep-sleep-with-RTC-memory @ 10 µA — SOURCE_SUPPORTED); duty-cycle period value still OPEN.
+- Stabilization delay magnitude: **decided, SOURCE_SUPPORTED** — 2 ms (BME280 BST-DS002).
 - Consecutive-fault escalation behavior: **decided** (DEC-09) — telemetry-status escalation only, no state-machine or timing change.
-- Per-state timing/current values: candidate sleep-current total now exists (`05_power/power_budget.md` §4), active-phase values remain OPEN.
+- Per-state timing/current values: sleep-current total is currently uncomputable (`05_power/power_budget.md` §4, GAP-08 — a newly surfaced charger-quiescent term); active-phase values remain OPEN except the 2 ms stabilization delay.
 
 No state in this model may be marked `IMPLEMENTED` or `VERIFIED` without the corresponding firmware artifact and evidence path required by `docs/00_shared/evidence_policy.md`.

@@ -14,10 +14,11 @@ from dataclasses import dataclass, fields
 
 @dataclass
 class SleepCurrentBudget:
-    i_esp32_sleep_ua: float | None = None       # SOL-007/015, REF-07
-    i_regulator_iq_ua: float | None = None      # SOL-004/015, REF-10 (TPS7A02 candidate)
+    i_esp32_sleep_ua: float | None = None       # SOL-007/015, REF-07 (10 uA, Deep-sleep+RTC memory, DEC-07)
+    i_regulator_iq_ua: float | None = None      # SOL-004/015, REF-10 (TPS7A02, 25 nA typ = 0.025 uA)
     i_divider_leakage_ua: float | None = None   # SOL-005/015, 0 per DEC-05 (GPIO-gated)
-    i_sensor_standby_ua: float | None = None    # SOL-006/013/015, REF-11 (BME280 candidate)
+    i_sensor_standby_ua: float | None = None    # SOL-006/013/015, REF-11 (BME280, 0.1 uA typ)
+    i_charger_quiescent_ua: float | None = None  # SOL-015, REF-09 (MCP73871) - which state applies is OPEN, see GAP-08
 
     def open_terms(self) -> list[str]:
         return [f.name for f in fields(self) if getattr(self, f.name) is None]
