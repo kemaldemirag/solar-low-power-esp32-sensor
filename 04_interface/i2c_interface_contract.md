@@ -11,7 +11,7 @@ Covers the single I2C bus between the ESP32 and the sensor(s) it drives, from bu
 ## 2. Voltage domain & pull-up strategy (SOL-009)
 
 - The bus operates in a single voltage domain: 3.3 V-only (ESP32-native), no level shifting. **Status: SOURCE_SUPPORTED (2026-09-17)** — Bosch BME280 datasheet BST-DS002: VDD = 1.71–3.6 V, VDDIO = 1.2–3.6 V, both spanning 3.3 V. GAP-05 closed for this clause.
-- Pull-up resistors are fixed values sized for the BME280 and the estimated bus trace capacitance. **Status: OPEN** — actual values still require REF-08 (I2C-bus specification, rise-time limits) and the BME280's input capacitance, neither of which was supplied; this contract records the calculation method, not a value (GAP-02 still open).
+- Pull-up resistors are fixed values sized for the BME280 and the estimated bus trace capacitance. **Status: OPEN, narrowed to a computed candidate range (2026-09-17 batch 2).** `04_interface/i2c_pullup_calc.py` gives R_min=967 Ω, R_max=2951 Ω, R_geomean≈1689 Ω from UM10204's public Standard-mode constants (V_OL=0.4 V, I_OL=3 mA, t_rise=1000 ns; cross-corroborated, not primary-opened) and BME280 C_b=400 pF (`WebSearch`-corroborated, not primary-opened). A standard value inside this range (e.g. 2.2 kΩ) is a reasonable candidate; not `SOURCE_SUPPORTED` because C_b was not read from the primary Bosch PDF (GAP-02 still open).
 - The mixed-voltage-domain contingency (§2 original text) no longer applies now that a 3.3 V-compatible sensor is selected; it would only become relevant again if BME280 is later rejected.
 
 ## 3. Address inventory, discovery & initialization (SOL-010)
@@ -59,7 +59,7 @@ Covers the single I2C bus between the ESP32 and the sensor(s) it drives, from bu
 ## 8. Open items
 
 - Voltage domain, address and stabilization delay: **`SOURCE_SUPPORTED`** (§2, §3, §6 — 2026-09-17 primary-datasheet update).
-- Pull-up resistor value: still `OPEN` — needs REF-08 (UM10204) and the BME280's input capacitance, neither supplied (GAP-02).
+- Pull-up resistor value: `OPEN`, narrowed to a computed candidate range (967–2951 Ω, §2) — not closed because C_b is `WebSearch`-corroborated only, not primary-source-read (GAP-02).
 - Consecutive-fault escalation behavior: **decided** (DEC-09, `SENSOR_OFFLINE` after N consecutive faults); N's exact value remains an implementation-time constant, not a hardware requirement.
 - Duplicate-address clause: **decided** `NOT_APPLICABLE` (DEC-08).
 
