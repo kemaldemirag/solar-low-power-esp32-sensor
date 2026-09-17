@@ -37,9 +37,9 @@ Exactly one pass through this sequence occurs per wake trigger; there is no in-c
 | `SENSOR_POWER_ON` | `WAKE` complete | Enable sensor power-gating rail | Rail enabled | SOL-013 |
 | `STABILIZE` | Rail enabled | Wait for stabilization delay (magnitude `OPEN`, see contract §6 — depends on sensor selection) | Delay elapsed | SOL-013 |
 | `I2C_INIT_DISCOVERY` | Stabilization elapsed | Targeted address probe per contract §3 | ACK → `MEASURE`; NACK/timeout → `FAULT_MARK` | SOL-010, SOL-011 |
-| `FAULT_MARK` | Probe NACK/timeout | Mark this cycle's sensor channel `FAULT` (contract §4); no in-cycle retry | Immediately → `TELEMETRY` | SOL-011 |
+| `FAULT_MARK` | Probe NACK/timeout | Mark this cycle's sensor channel `FAULT` (contract §4); increment the cross-cycle consecutive-fault counter (DEC-09); no in-cycle retry | Immediately → `TELEMETRY` | SOL-011 |
 | `MEASURE` | Probe ACK | Perform sensor measurement(s) — measurement semantics out of scope for PROJECT-01's interface contract | Measurement complete | SOL-006 |
-| `TELEMETRY` | `MEASURE` complete, or `FAULT_MARK` | Emit telemetry; on the fault path, skip the affected field or emit an explicit fault/stale status per contract §4 (exact encoding undefined here) | Telemetry emitted | SOL-011, SOL-014 |
+| `TELEMETRY` | `MEASURE` complete, or `FAULT_MARK` | Emit telemetry; on the fault path, report `FAULT` for this cycle, or `SENSOR_OFFLINE` if the consecutive-fault counter has reached N (contract §4, DEC-09) | Telemetry emitted | SOL-011, SOL-014 |
 | `PERIPHERAL_SHUTDOWN` | `TELEMETRY` complete | Disable sensor power-gating rail; release/park I2C peripheral before sleep | Shutdown complete | SOL-013 |
 
 ## 3. Wake trigger (SOL-007)
@@ -51,7 +51,7 @@ The numeric duty-cycle period (the interval between RTC wakes) is not fixed by t
 ## 4. Fault-path consistency with the interface contract
 
 - `FAULT_MARK` never blocks `PERIPHERAL_SHUTDOWN` or the next cycle's `SLEEP → WAKE` transition — no persistent lockout is modeled, matching contract §4.
-- Whether consecutive faults across multiple cycles should alter this state machine (e.g., an escalation state, a longer sleep interval) is explicitly **OPEN** in both this model and the interface contract §4; it is not modeled here until a decision is recorded.
+- **Decided (DEC-09):** consecutive faults across cycles do not alter this state machine's structure or timing. A cross-cycle fault counter is tracked only for the telemetry-status escalation defined in the interface contract §4 (`FAULT` → `SENSOR_OFFLINE` after N consecutive cycles); it does not add a state, does not change `t_sleep`, and does not feed back into `SLEEP`, `WAKE` or any other transition in §1.
 
 ## 5. Timing budget placeholder
 
@@ -71,7 +71,7 @@ Per-state duration and current draw feed the board-level sleep-current budget (P
 
 - Wake-trigger source: **decided** (DEC-07, RTC-only); duty-cycle period value still OPEN.
 - Stabilization delay magnitude: OPEN — sensor selected (BME280, DEC-06) but its power-on-time value not found via search (GAP-05/GAP-07).
-- Consecutive-fault escalation behavior: OPEN, no decision recorded (DEC-09).
+- Consecutive-fault escalation behavior: **decided** (DEC-09) — telemetry-status escalation only, no state-machine or timing change.
 - Per-state timing/current values: candidate sleep-current total now exists (`05_power/power_budget.md` §4), active-phase values remain OPEN.
 
 No state in this model may be marked `IMPLEMENTED` or `VERIFIED` without the corresponding firmware artifact and evidence path required by `docs/00_shared/evidence_policy.md`.

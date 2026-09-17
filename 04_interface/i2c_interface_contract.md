@@ -32,7 +32,8 @@ Covers the single I2C bus between the ESP32 and the sensor(s) it drives, from bu
 | Bus times out (clock stretching / no response within a bounded timeout) | Treated identically to NACK: `FAULT` for this wake cycle, no in-cycle retry. |
 | Sensor ACKs probe but NACKs a subsequent configuration write | Treated as `FAULT` for this wake cycle; partial initialization is not treated as a usable state. |
 
-- A `FAULT` on one wake cycle does not block the next wake cycle's independent discovery attempt (§3) — no persistent lockout across cycles is assumed. **Status: OPEN** — whether repeated consecutive faults should escalate (e.g., extend sleep, raise a distinct telemetry status) is undecided; record any such decision in the decision register before implementing it.
+- A `FAULT` on one wake cycle does not block the next wake cycle's independent discovery attempt (§3) — no persistent lockout across cycles is assumed.
+- **Decided (DEC-09):** after N consecutive `FAULT` cycles (candidate N=3, an implementation constant, not a hardware requirement), the telemetry status for the affected channel escalates from per-cycle `FAULT` to a persistent `SENSOR_OFFLINE` status. This escalation does not alter sleep-cycle timing (§SOL-007) or retry behavior (§3) — it only changes what is reported. A subsequent successful discovery clears `SENSOR_OFFLINE` back to normal.
 
 ## 5. Duplicate-address handling (SOL-012)
 
@@ -59,7 +60,7 @@ Covers the single I2C bus between the ESP32 and the sensor(s) it drives, from bu
 
 - Sensor selected (BME280, DEC-06); voltage domain and address are `DECISION_SUPPORTED` candidates (§2, §3), but both remain secondary-source only pending primary-datasheet confirmation (GAP-05/GAP-07).
 - Pull-up resistor value and stabilization-delay magnitude: still `OPEN` — need the primary BME280 datasheet (capacitance, power-on time) and REF-08 (UM10204).
-- Consecutive-fault escalation behavior (DEC-09): `OPEN`, no decision recorded yet.
+- Consecutive-fault escalation behavior: **decided** (DEC-09, `SENSOR_OFFLINE` after N consecutive faults); N's exact value remains an implementation-time constant, not a hardware requirement.
 - Duplicate-address clause: **decided** `NOT_APPLICABLE` (DEC-08).
 
 No clause in this document may be marked `VERIFIED` or `IMPLEMENTED` without the corresponding evidence path required by `docs/00_shared/evidence_policy.md`.
