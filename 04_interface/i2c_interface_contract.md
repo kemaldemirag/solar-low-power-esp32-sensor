@@ -1,6 +1,6 @@
 # PROJECT-01 I2C Interface Contract — INITIAL
 
-Per the portfolio workflow governance report (P01-04). Defines the behavioral contract the firmware and hardware design must satisfy for the sensor I2C interface. The sensor is now selected (Bosch BME280, `06_decisions/decision_register.md` DEC-06) and voltage domain, address and stabilization delay are `SOURCE_SUPPORTED` from its primary datasheet (2026-09-17 update). The pull-up value remains `OPEN` pending REF-08 (UM10204) — no placeholder number is recorded in its place, per `docs/00_shared/evidence_policy.md`.
+Per the portfolio workflow governance report (P01-04), re-scoped under the 17.09.2026 REFERENCE_BASELINE. Defines the behavioral contract the firmware and hardware design must satisfy for the sensor I2C interface. The sensor is now selected (Bosch BME280, `06_decisions/decision_register.md` DEC-06); voltage domain, address, stabilization delay and pull-up sizing are closed (§2, §3, §6). **This document is not yet contract-complete:** §6 carries an open hardware-safety finding (DEC-12, I2C pin logic-high while VDDIO is off) that must be resolved before a schematic is drawn from it.
 
 Traces to: SOL-006, SOL-009, SOL-010, SOL-011, SOL-012, SOL-013. Candidate scenarios behind each clause are in `03_specification/scenario_matrix.md`.
 
@@ -11,7 +11,7 @@ Covers the single I2C bus between the ESP32 and the sensor(s) it drives, from bu
 ## 2. Voltage domain & pull-up strategy (SOL-009)
 
 - The bus operates in a single voltage domain: 3.3 V-only (ESP32-native), no level shifting. **Status: SOURCE_SUPPORTED (2026-09-17)** — Bosch BME280 datasheet BST-DS002: VDD = 1.71–3.6 V, VDDIO = 1.2–3.6 V, both spanning 3.3 V. GAP-05 closed for this clause.
-- Pull-up resistors are fixed values sized for the BME280 and the estimated bus trace capacitance. **Status: OPEN, narrowed to a computed candidate range (2026-09-17 batch 2).** `04_interface/i2c_pullup_calc.py` gives R_min=967 Ω, R_max=2951 Ω, R_geomean≈1689 Ω from UM10204's public Standard-mode constants (V_OL=0.4 V, I_OL=3 mA, t_rise=1000 ns; cross-corroborated, not primary-opened) and BME280 C_b=400 pF (`WebSearch`-corroborated, not primary-opened). A standard value inside this range (e.g. 2.2 kΩ) is a reasonable candidate; not `SOURCE_SUPPORTED` because C_b was not read from the primary Bosch PDF (GAP-02 still open).
+- Pull-up resistors are fixed values, sized against UM10204's own worst-case bus capacitance rather than an unconfirmed device-specific figure. **Status: CLOSED (analytical), 2026-09-17 (GAP-02, P01-G2-03).** `04_interface/i2c_pullup_calc.py`: R_min=967 Ω (drive-strength limit, UM10204 Standard-mode V_OL=0.4 V/I_OL=3 mA), R_max=2951 Ω (rise-time limit at UM10204's Standard/Fast-mode worst-case C_b=400 pF), R_geomean≈1689 Ω. A standard value inside [967, 2951] Ω — e.g. 2.2 kΩ — is a valid, analytically compliant candidate for any real single-sensor short-trace bus, which will have far less than 400 pF. **Actual Rev-A bus capacitance and rise time: `PHYSICAL_VALIDATION_REQUIRED`** (bench oscilloscope capture on assembled hardware); the analytical closure above does not substitute for it.
 - The mixed-voltage-domain contingency (§2 original text) no longer applies now that a 3.3 V-compatible sensor is selected; it would only become relevant again if BME280 is later rejected.
 
 ## 3. Address inventory, discovery & initialization (SOL-010)
@@ -46,6 +46,8 @@ Covers the single I2C bus between the ESP32 and the sensor(s) it drives, from bu
 - After every power-gating cycle, the ESP32's I2C peripheral is fully re-initialized (§3), not merely resumed from a suspended state — the contract does not rely on peripheral or bus state surviving a sleep cycle.
 - The stabilization delay and the re-initialization step are both mandatory steps in the operational cycle defined in `05_power/power_state_model.md` (P01-05); this contract and that model must stay consistent — a change to one requires reviewing the other.
 
+**⚠ Open hardware-safety finding (DEC-12, 2026-09-17, not yet closed):** BME280's own datasheet forbids holding SDI/SDO/SCK/CSB at logic-high while VDDIO is off — doing so can drive an overcurrent through the pin's ESD protection diode and cause permanent damage. As written, this section gates the sensor's power rail while implying the I2C pull-ups stay on a fixed, always-on 3.3 V rail (§2) — during sleep, that leaves the MCU-side I2C lines pulled high while the sensor's VDDIO is off, which is exactly the forbidden condition. **This clause is not contract-complete until DEC-12 is resolved** in `06_decisions/decision_register.md` (candidates: gate the pull-ups on the same switched rail as the sensor, or never gate VDDIO and gate a different supply instead). Do not treat §2/§6 as implementation-ready for a schematic until this is closed.
+
 ## 7. Traceability
 
 | Contract clause | SOL-ID(s) | Scenario matrix row(s) |
@@ -59,8 +61,9 @@ Covers the single I2C bus between the ESP32 and the sensor(s) it drives, from bu
 ## 8. Open items
 
 - Voltage domain, address and stabilization delay: **`SOURCE_SUPPORTED`** (§2, §3, §6 — 2026-09-17 primary-datasheet update).
-- Pull-up resistor value: `OPEN`, narrowed to a computed candidate range (967–2951 Ω, §2) — not closed because C_b is `WebSearch`-corroborated only, not primary-source-read (GAP-02).
+- Pull-up resistor value: **CLOSED (analytical)** — 967–2951 Ω, e.g. 2.2 kΩ (§2, GAP-02); actual Rev-A rise time is `PHYSICAL_VALIDATION_REQUIRED`.
 - Consecutive-fault escalation behavior: **decided** (DEC-09, `SENSOR_OFFLINE` after N consecutive faults); N's exact value remains an implementation-time constant, not a hardware requirement.
 - Duplicate-address clause: **decided** `NOT_APPLICABLE` (DEC-08).
+- **I2C pin logic-high during power-gating (DEC-12): OPEN, unresolved hardware-safety finding** — see §6. Blocks treating this contract as implementation-ready.
 
 No clause in this document may be marked `VERIFIED` or `IMPLEMENTED` without the corresponding evidence path required by `docs/00_shared/evidence_policy.md`.

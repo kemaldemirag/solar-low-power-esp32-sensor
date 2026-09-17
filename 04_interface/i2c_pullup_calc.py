@@ -6,20 +6,22 @@ formulas:
     R_max = t_rise / (0.8473 * C_b)
     R_rec = sqrt(R_min * R_max)   # geometric mean, a common sizing heuristic
 
-V_OL, I_OL and t_rise below are public I2C-standard constants for
-Standard-mode (100 kHz), cross-corroborated across independent secondary
-sources this session (not read from the primary UM10204 PDF directly -
-WebFetch is blocked, see 06_decisions/evidence_gaps.md GAP-07/GAP-02).
-C_b (bus capacitance) is a BME280-specific value from the same kind of
-secondary-source corroboration, attributed to Bosch BST-DS002.
-
-This computes a candidate range, not a verified one: see the module
-docstring's evidence-tier note before citing a value as SOURCE_SUPPORTED.
+V_OL, I_OL, t_rise and C_b below are public UM10204 Standard-mode
+constants (cross-corroborated across independent secondary sources this
+session; WebFetch to the primary NXP PDF is blocked, see
+06_decisions/evidence_gaps.md GAP-07). GAP-02 closure (2026-09-17) uses
+C_b = 400 pF as UM10204's own defined *maximum allowed bus capacitance*
+for Standard/Fast-mode - a worst-case design bound, not an attempt to
+measure this board's actual (much smaller) bus capacitance. Designing
+the pull-up to satisfy the standard's own worst case is a valid
+analytical closure; actual Rev-A bus capacitance and rise time are
+smaller by construction (one sensor, short traces) and are verified by
+bench measurement, tracked separately as PHYSICAL_VALIDATION_REQUIRED.
 """
 
 import math
 
-# UM10204 Standard-mode (100 kHz) constants - public I2C standard, not device-specific.
+# UM10204 Standard-mode (100 kHz) constants - public I2C standard.
 V_OL_MAX = 0.4       # V, max low-level output voltage at I_OL
 I_OL = 0.003         # A, 3 mA test current (UM10204 standard-mode/fast-mode)
 T_RISE_MAX_S = 1000e-9  # s, Standard-mode max rise time (Fast-mode would be 300e-9)
@@ -29,9 +31,10 @@ T_RISE_MAX_S = 1000e-9  # s, Standard-mode max rise time (Fast-mode would be 300
 # as a DECISION_SUPPORTED choice, not itself a datasheet value.
 BUS_SPEED_MODE = "Standard-mode (100 kHz)"
 
-# BME280-specific, WebSearch-corroborated (attributed to BST-DS002, not
-# primary-opened this session).
-C_B_BME280_F = 400e-12  # 400 pF
+# UM10204's own defined max bus capacitance for Standard/Fast-mode - used
+# here as a worst-case design bound (GAP-02 closure), not as a claimed
+# measurement of this board's actual (smaller) bus capacitance.
+C_B_WORST_CASE_F = 400e-12  # 400 pF, UM10204 Standard/Fast-mode Cb max
 
 
 def r_min_ohm(v_dd: float) -> float:
@@ -53,11 +56,11 @@ def recommended_range(v_dd: float, c_bus_f: float) -> dict:
 
 
 if __name__ == "__main__":
-    result = recommended_range(v_dd=3.3, c_bus_f=C_B_BME280_F)
-    print(f"Bus: {BUS_SPEED_MODE}, V_DD=3.3V, C_b={C_B_BME280_F*1e12:.0f} pF (BME280, search-corroborated)")
+    result = recommended_range(v_dd=3.3, c_bus_f=C_B_WORST_CASE_F)
+    print(f"Bus: {BUS_SPEED_MODE}, V_DD=3.3V, C_b={C_B_WORST_CASE_F*1e12:.0f} pF (UM10204 Standard/Fast-mode worst-case bound)")
     print(f"R_min = {result['r_min_ohm']:.0f} ohm (drive-strength limit)")
-    print(f"R_max = {result['r_max_ohm']:.0f} ohm (rise-time/capacitance limit)")
+    print(f"R_max = {result['r_max_ohm']:.0f} ohm (rise-time/capacitance limit at worst-case Cb)")
     print(f"R_geomean (candidate) = {result['r_geomean_ohm']:.0f} ohm")
-    print("Any standard resistor value within [R_min, R_max] is a valid candidate,")
-    print("e.g. 2.2 kohm falls inside this range. NOT primary-source verified -")
-    print("C_b is WebSearch-corroborated only; see GAP-02 status.")
+    print("Any standard resistor value within [R_min, R_max] satisfies UM10204's")
+    print("worst case; e.g. 2.2 kohm. GAP-02 CLOSED on this analytical basis.")
+    print("Actual Rev-A bus capacitance/rise time: PHYSICAL_VALIDATION_REQUIRED.")
