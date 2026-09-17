@@ -44,12 +44,9 @@ Exactly one pass through this sequence occurs per wake trigger; there is no in-c
 
 ## 3. Wake trigger (SOL-007)
 
-Two candidates remain open (see `03_specification/scenario_matrix.md`):
+**Decided (DEC-07): RTC timer only** — fixed periodic duty cycle, no external interrupt path. The rejected alternative (RTC + GPIO/external interrupt, for periodic-plus-event-driven wake) is recorded in `03_specification/scenario_matrix.md` for traceability but not pursued; revisit only if a future requirement needs event-driven wake.
 
-- **Candidate A:** RTC timer only — fixed periodic duty cycle, no external interrupt path.
-- **Candidate B:** RTC timer + GPIO/external interrupt — periodic plus event-driven wake.
-
-This model is written so either candidate plugs into the single `SLEEP → (wake trigger) → WAKE` transition without changing downstream states. **Status: OPEN** — selecting between A and B is a decision-register item (P01-07), not fixed here.
+The numeric duty-cycle period (the interval between RTC wakes) is not fixed by this decision and remains `OPEN` — see `05_power/power_budget.md` §3/§6.
 
 ## 4. Fault-path consistency with the interface contract
 
@@ -72,9 +69,9 @@ Per-state duration and current draw feed the board-level sleep-current budget (P
 
 ## 7. Open items
 
-- Wake-trigger candidate (A vs. B): OPEN, decision-register item.
-- Stabilization delay magnitude: OPEN, blocked on sensor selection.
-- Consecutive-fault escalation behavior: OPEN, no decision recorded.
-- Per-state timing/current values: OPEN, deferred to P01-06.
+- Wake-trigger source: **decided** (DEC-07, RTC-only); duty-cycle period value still OPEN.
+- Stabilization delay magnitude: OPEN — sensor selected (BME280, DEC-06) but its power-on-time value not found via search (GAP-05/GAP-07).
+- Consecutive-fault escalation behavior: OPEN, no decision recorded (DEC-09).
+- Per-state timing/current values: candidate sleep-current total now exists (`05_power/power_budget.md` §4), active-phase values remain OPEN.
 
 No state in this model may be marked `IMPLEMENTED` or `VERIFIED` without the corresponding firmware artifact and evidence path required by `docs/00_shared/evidence_policy.md`.

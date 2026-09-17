@@ -15,9 +15,9 @@ from dataclasses import dataclass, fields
 @dataclass
 class SleepCurrentBudget:
     i_esp32_sleep_ua: float | None = None       # SOL-007/015, REF-07
-    i_regulator_iq_ua: float | None = None      # SOL-004/015, REF-10 (pending)
-    i_divider_leakage_ua: float | None = None   # SOL-005/015, depends on gated vs always-on decision
-    i_sensor_standby_ua: float | None = None    # SOL-006/013/015, REF-11 (pending)
+    i_regulator_iq_ua: float | None = None      # SOL-004/015, REF-10 (TPS7A02 candidate)
+    i_divider_leakage_ua: float | None = None   # SOL-005/015, 0 per DEC-05 (GPIO-gated)
+    i_sensor_standby_ua: float | None = None    # SOL-006/013/015, REF-11 (BME280 candidate)
 
     def open_terms(self) -> list[str]:
         return [f.name for f in fields(self) if getattr(self, f.name) is None]

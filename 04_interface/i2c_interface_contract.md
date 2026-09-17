@@ -10,13 +10,13 @@ Covers the single I2C bus between the ESP32 and the sensor(s) it drives, from bu
 
 ## 2. Voltage domain & pull-up strategy (SOL-009)
 
-- The bus operates in a single voltage domain. Candidate: 3.3 V-only (ESP32-native), no level shifting. **Status: OPEN** — depends on the selected sensor's supported I2C voltage range (REF-11) and is not assumed for a mixed-voltage sensor.
-- Pull-up resistors are fixed values sized for one sensor and the estimated bus trace capacitance. **Status: OPEN** — actual values require REF-08 (I2C-bus specification, rise-time limits) and REF-11 (sensor input capacitance) before they can be fixed; this contract records the calculation method, not a value.
-- If a future sensor requires a different voltage domain, this contract must be revised and a decision recorded (see `06_decisions/decision_register.md`) before any pull-up value is fixed — a mixed-domain bus is not silently assumed compatible.
+- The bus operates in a single voltage domain: 3.3 V-only (ESP32-native), no level shifting. **Status: DECISION_SUPPORTED (candidate)** — sensor selected is Bosch BME280 (decision register DEC-06), which per a `WebSearch`-corroborated (not primary-source-read) spec supports a 1.71–3.6 V sensor supply and 1.2–3.6 V interface supply, both spanning 3.3 V. Treat as a candidate until the primary Bosch datasheet is read (GAP-05/GAP-07).
+- Pull-up resistors are fixed values sized for the BME280 and the estimated bus trace capacitance. **Status: OPEN** — actual values still require REF-08 (I2C-bus specification, rise-time limits) and the BME280's input capacitance from its primary datasheet; this contract records the calculation method, not a value.
+- The mixed-voltage-domain contingency (§2 original text) no longer applies now that a 3.3 V-compatible sensor is selected; it would only become relevant again if BME280 is later rejected.
 
 ## 3. Address inventory, discovery & initialization (SOL-010)
 
-- **Address inventory:** one fixed I2C address per sensor, as assigned by the sensor's own address pin strapping/part variant. **Status: OPEN** pending sensor selection (REF-11).
+- **Address inventory:** BME280, one fixed I2C address selected via its SDO strap — 0x76 (SDO=GND) or 0x77 (SDO=VDDIO). **Status: DECISION_SUPPORTED (candidate)** per decision register DEC-06; the exact strap wiring (which address) is an open PCB-level choice, not a protocol ambiguity. Value is `WebSearch`-corroborated, not read from the primary datasheet (GAP-05/GAP-07).
 - **Discovery sequence (contract, independent of the specific sensor):**
   1. After sensor power rail is enabled and the stabilization delay (§5) has elapsed, the MCU performs a targeted address probe (a single-byte read or a zero-length write) at the sensor's documented fixed address — not a full 0x08–0x77 bus scan, since the address set is known in advance.
   2. A successful ACK at the probe step transitions the sequence to normal initialization (any required configuration-register writes documented in a future sensor-specific addendum).
@@ -36,12 +36,12 @@ Covers the single I2C bus between the ESP32 and the sensor(s) it drives, from bu
 
 ## 5. Duplicate-address handling (SOL-012)
 
-- **Current candidate:** `NOT_APPLICABLE` — a single fixed-address sensor is assumed, so no duplicate-address condition can occur. This is a candidate, not yet a closed decision (final sensor not selected).
+- **Decided (DEC-08): `NOT_APPLICABLE`** — a single BME280 is on the bus, so no duplicate-address condition can occur.
 - If a second device sharing the same address is ever added to the bus, this contract requires one of: (a) an address-select strap/pin difference, or (b) a bus multiplexer/switch — an external ORing or "just try both" approach is explicitly out of contract. This clause only activates if scope expands; it imposes no requirement today.
 
 ## 6. Power-gating stabilization & bus re-initialization (SOL-013)
 
-- The sensor's power rail is gated off during sleep. On wake, the MCU enables the rail, then waits a stabilization delay before any I2C activity. **Status: OPEN** — the delay's magnitude is not fixed here; it must equal or exceed the sensor's documented power-on-to-ready time (REF-11) once selected. No default delay is assumed.
+- The sensor's power rail is gated off during sleep. On wake, the MCU enables the rail, then waits a stabilization delay before any I2C activity. **Status: OPEN** — the delay's magnitude is not fixed here. BME280 is selected (DEC-06) but its power-on-to-ready time was not found via `WebSearch`; it must equal or exceed that value once read from the primary datasheet (GAP-05/GAP-07). No default delay is assumed.
 - After every power-gating cycle, the ESP32's I2C peripheral is fully re-initialized (§3), not merely resumed from a suspended state — the contract does not rely on peripheral or bus state surviving a sleep cycle.
 - The stabilization delay and the re-initialization step are both mandatory steps in the operational cycle defined in `05_power/power_state_model.md` (P01-05); this contract and that model must stay consistent — a change to one requires reviewing the other.
 
@@ -57,8 +57,9 @@ Covers the single I2C bus between the ESP32 and the sensor(s) it drives, from bu
 
 ## 8. Open items
 
-- Bus voltage domain, pull-up values, address, stabilization delay: all `OPEN`, blocked on sensor selection (REF-11) and I2C standard reference (REF-08).
-- Consecutive-fault escalation behavior: `OPEN`, no decision recorded yet.
-- Duplicate-address clause: candidate `NOT_APPLICABLE`, not yet closed.
+- Sensor selected (BME280, DEC-06); voltage domain and address are `DECISION_SUPPORTED` candidates (§2, §3), but both remain secondary-source only pending primary-datasheet confirmation (GAP-05/GAP-07).
+- Pull-up resistor value and stabilization-delay magnitude: still `OPEN` — need the primary BME280 datasheet (capacitance, power-on time) and REF-08 (UM10204).
+- Consecutive-fault escalation behavior (DEC-09): `OPEN`, no decision recorded yet.
+- Duplicate-address clause: **decided** `NOT_APPLICABLE` (DEC-08).
 
 No clause in this document may be marked `VERIFIED` or `IMPLEMENTED` without the corresponding evidence path required by `docs/00_shared/evidence_policy.md`.
