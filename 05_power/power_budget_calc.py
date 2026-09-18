@@ -7,6 +7,12 @@ rather than silently substituting a placeholder value when a term is
 still open. Fill in the dataclass fields once a value is sourced from a
 selected component's datasheet (see 02_requirements/reference_classification.md)
 or a bench measurement, then re-run this script for a reproducible result.
+
+2026-09-18: SleepCurrentBudget gained a sixth field, i_arbitration_iq_ua,
+after DEC-01/DEC-02 added an external ideal-diode-OR stage (source
+arbitration ahead of the charger), and i_regulator_iq_ua reverted to None
+after DEC-04 dropped TPS7A02 (200 mA max, insufficient for the ESP32's
+active-mode current) without yet selecting its >=500 mA replacement.
 """
 
 from dataclasses import dataclass, fields
@@ -15,10 +21,11 @@ from dataclasses import dataclass, fields
 @dataclass
 class SleepCurrentBudget:
     i_esp32_sleep_ua: float | None = None       # SOL-007/015, REF-07 (10 uA, Deep-sleep+RTC memory, DEC-07)
-    i_regulator_iq_ua: float | None = None      # SOL-004/015, REF-10 (TPS7A02, 25 nA typ) - DEC-04 REOPENED, provisional
+    i_regulator_iq_ua: float | None = None      # SOL-004/015 - OPEN: TPS7A02 dropped (DEC-04, 2026-09-18), replacement part not yet selected
     i_divider_leakage_ua: float | None = None   # SOL-005/015, 0 per DEC-05 (GPIO-gated)
     i_sensor_standby_ua: float | None = None    # SOL-006/013/015, REF-11 (BME280, 0.1 uA typ)
     i_charger_quiescent_ua: float | None = None  # SOL-015, REF-09 (MCP73871 IDISCHARGE, 30 uA typ / 40 uA max @ VBAT=Power Out No Load) - GAP-08 CLOSED
+    i_arbitration_iq_ua: float | None = None    # SOL-001/002/015 (LTC4412 ideal-diode-OR, ~11 uA documented per handoff, DEC-01/DEC-02 2026-09-18) - SOURCE_SUPPORTED (handoff-relayed)
 
     def open_terms(self) -> list[str]:
         return [f.name for f in fields(self) if getattr(self, f.name) is None]

@@ -78,7 +78,7 @@ Per-state duration and current draw feed the board-level sleep-current budget (P
 - Wake-trigger source and mode: **decided** (DEC-07, RTC-only, Deep-sleep-with-RTC-memory @ 10 µA — SOURCE_SUPPORTED); duty-cycle period value still OPEN.
 - Stabilization delay magnitude: **decided, SOURCE_SUPPORTED** — 2 ms (BME280 BST-DS002).
 - Consecutive-fault escalation behavior: **decided** (DEC-09) — telemetry-status escalation only, no state-machine or timing change.
-- Per-state timing/current values: sleep-current total is now computed (`05_power/power_budget.md` §4, GAP-08 CLOSED — 40.125 µA typ); active-phase values remain OPEN except the 2 ms stabilization delay.
+- Per-state timing/current values: sleep-current total is **not computable** as of 2026-09-18 batch 4 (`05_power/power_budget.md` §4) — GAP-08's `I_charger_quiescent` term remains CLOSED, but DEC-04 reopened the regulator term and added a new arbitration term; active-phase values remain OPEN except the 2 ms stabilization delay.
 - **I2C pull-up rail vs. sensor power-gating rail (DEC-12): OPEN, hardware-safety finding** — see §5a. This state machine is not implementation-safe until resolved.
 
 No state in this model may be marked `IMPLEMENTED` or `VERIFIED` without the corresponding firmware artifact and evidence path required by `docs/00_shared/evidence_policy.md`.
