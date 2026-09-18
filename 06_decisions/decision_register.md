@@ -21,7 +21,7 @@ Targeted verification for GAP-01..06 was first attempted via `WebSearch`; direct
 - **DEC-04 (3.3 V regulator) unchanged.** Its "topology only, part OPEN" status already matches this revision's model (an architecture-level statement with no part selected) — tracked as **P01-R03**. Two new seed candidates (BQ25185, TPS62840) are added per the revision's §19; see `reference_classification.md` REF-20/21.
 - **DEC-12/DEC-11 unchanged.** Both were already OPEN/BLOCKED, consistent with this revision's P01-R05/P01-R06.
 
-**P01-R0x package cross-reference.** The handoff reuses labels like "DEC-01".."DEC-04" with *different meanings* than this register's own DEC numbering (e.g. the handoff's own "DEC-02" means charger/power-path, which is this register's **DEC-03**, not this register's DEC-02). This table maps the handoff's package IDs to this register's actual DEC-IDs to avoid confusion — **this register's own DEC numbering is not renumbered**:
+**P01-R0x package cross-reference.** The handoff reuses labels like "DEC-01".."DEC-04" with *different meanings* than this register's own DEC numbering (e.g. the handoff's own "DEC-02" means charger/power-path, which is this register's **DEC-03**, not this register's DEC-02). This table maps the handoff's package IDs to this register's actual DEC-IDs to avoid confusion — **this register's own DEC numbering is not renumbered**. The revision's own research dependency order (§21, "revised immediate next action") is **P01-R01 → P01-R02 → P01-R03 → P01-R04 → P01-R05/P01-R06 → P01-R07 → P01-R08**, matching the row order below:
 
 | Handoff package | Handoff's own label | This register's ID(s) | Status after batch 5 |
 |---|---|---|---|
@@ -94,12 +94,14 @@ Per the governance report §2.1: *"I2C interface contract + power-state model + 
 - **DEC-12** — BME280 I2C pin logic-level-during-power-gating hazard; not addressed this pass, deliberately deferred until the source/regulator topology above was frozen.
 - **DEC-11** — input OVP component selection; still `BLOCKED`, no IQ evidence for the remaining candidates; also deliberately deferred until this pass's topology was frozen (an OVP stage sits electrically close to the new arbitration stage, so sequencing it after DEC-01/02 is intentional, not neglect).
 
-**Update (2026-09-18, batch 5 — revised handoff):** DEC-01, DEC-02 and DEC-13, closed as `DECIDED (candidate)` above in batch 4, are **downgraded back to `RESEARCH_REQUIRED`** (see the "Revised closure model" section above) under the revision's stricter seed-candidate rule. GATE-2's blocking list is therefore **wider than the batch-4 report stated**, not narrower:
-- DEC-01/DEC-02 (source arbitration, P01-R01) — reopened to `RESEARCH_REQUIRED`.
-- DEC-13 (battery-side protection, P01-R04) — reopened to `RESEARCH_REQUIRED`.
-- DEC-04's regulator part selection (P01-R03) — unchanged, still open.
-- DEC-12 (P01-R05) and DEC-11 (P01-R06) — unchanged, still OPEN/BLOCKED.
+**Update (2026-09-18, batch 5 — revised handoff):** DEC-01, DEC-02 and DEC-13, closed as `DECIDED (candidate)` above in batch 4, are **downgraded back to `RESEARCH_REQUIRED`** (see the "Revised closure model" section above) under the revision's stricter seed-candidate rule. GATE-2's blocking list is therefore **wider than the batch-4 report stated**, not narrower. Restated in the revision's own research dependency order (**P01-R01 → P01-R02 → P01-R03 → P01-R04 → P01-R05/P01-R06 → P01-R07 → P01-R08**, per its §21 "revised immediate next action"):
+- **P01-R01** — DEC-01/DEC-02 (source arbitration) — reopened to `RESEARCH_REQUIRED`.
+- P01-R02 — DEC-03 (charger/power-path) — `DECIDED (candidate)`, not blocking.
+- **P01-R03** — DEC-04's regulator part selection — unchanged, still open.
+- **P01-R04** — DEC-13 (battery-side protection) — reopened to `RESEARCH_REQUIRED`.
+- **P01-R05/P01-R06** — DEC-12 and DEC-11 — unchanged, still OPEN/BLOCKED.
+- P01-R07/P01-R08 — battery sensing/ADC and board-level energy model — new packages, not yet started (see `02_requirements/use_case_scenarios.md`, `05_power/calculation_packages.md`); not reachable before P01-R01..R06 close.
 
 Per the revision's own operating principle, none of these are to be closed by this session directly — they are to be transferred to the separate research project, which returns compact closure packages (evidence, reproducible calculations, rejected alternatives, residual validation, proposed status) for this register to then accept. This session's role until that happens is limited to maintaining the scaffolding (`02_requirements/use_case_scenarios.md`, `05_power/calculation_packages.md`) the returned packages will need to plug into.
 
-PCB/firmware implementation (P01-08) does not open. This session does not proceed to it. GATE-2 will not be re-evaluated until DEC-01/DEC-02, DEC-04's part, DEC-12, DEC-13 and DEC-11 each reach their own documented closure, per the 17.09 baseline's "re-evaluate once, after all named contracts close" rule.
+PCB/firmware implementation (P01-08) does not open. This session does not proceed to it. GATE-2 will not be re-evaluated until DEC-01/DEC-02 (P01-R01), DEC-04's part (P01-R03), DEC-13 (P01-R04), DEC-12 (P01-R05) and DEC-11 (P01-R06) each reach their own documented closure, in that dependency order, per the 17.09 baseline's "re-evaluate once, after all named contracts close" rule.
