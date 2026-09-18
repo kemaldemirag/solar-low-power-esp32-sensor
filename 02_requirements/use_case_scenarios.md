@@ -1,0 +1,21 @@
+# PROJECT-01 Use-Case / Operational Scenarios — INITIAL
+
+Added 2026-09-18 (batch 5), per the revised handoff `Codex_Handoff_CAN_Bus_Enerji_Uretimi_Portfoy_REVISED_CLOSURE_18.09.2026.docx`, §15.1 ("required operational scenarios") and §14.1's mandatory decision chain (use context → user need → system requirement → design envelope → architecture → calculation → validation → frozen contract). This file is the *use-context* layer that chain requires before any component selection: "no component selection substitutes for undefined use context."
+
+**Use statement (from the revision, §15):** an autonomous Wi-Fi sensor node whose value is reduced maintenance and reliable data acquisition, not merely the presence of a solar charger.
+
+This session did not perform new product research to populate this file — it records the seven required scenarios, links each to existing SOL-IDs/decisions, and states what's still missing before each scenario can be closed. Populating the missing items is separate research-project work per `06_decisions/decision_register.md`'s batch-5 update.
+
+| ID | Name | Description (per revised handoff §15.1) | Linked SOL-ID(s) | Linked decision(s) | Status |
+|---|---|---|---|---|---|
+| P01-UC01 | NORMAL_SOLAR | Solar supports load and charging; periodic measure/report/sleep proceeds normally. | SOL-001, SOL-002, SOL-014, SOL-016 | DEC-01/DEC-02 (RESEARCH_REQUIRED), DEC-07 (decided, wake cycle) | DESIGN_INPUT_REQUIRED — needs the solar-panel envelope (currently `ASSUMED` in `06_decisions/decision_register.md`) and DEC-01/DEC-02's frozen source-state table before the "both sources active" sub-case is closable. |
+| P01-UC02 | NIGHT_BATTERY | No solar; protected 1S battery operation only. | SOL-003, SOL-015 | DEC-13 (RESEARCH_REQUIRED, P01-R04) | RESEARCH_REQUIRED — the sleep-current budget structure exists (`05_power/power_budget.md`) but is not computable (regulator term OPEN), and DEC-13's protection boundary is not frozen. |
+| P01-UC03 | LOW_SOLAR | Harvested energy below consumption; a controlled energy policy is needed. | SOL-016 | None yet | OPEN — SOL-016 (energy-deficit scenario) has no decision on the low-SOC behavior threshold (duty-cycle reduction vs. brown-out); this is also where P01-UC05 (CRITICAL_BATTERY) overlaps. |
+| P01-UC04 | WIFI_UNAVAILABLE | Bounded retries and an explicit data policy when Wi-Fi association/telemetry fails. | SOL-011, SOL-014 | DEC-09 (decided, consecutive-fault escalation — but that covers *sensor* faults, not Wi-Fi/telemetry faults specifically) | OPEN — no retry-count/backoff policy or "what happens to unsent telemetry" decision exists yet for the Wi-Fi link itself (distinct from DEC-09's I2C-sensor fault counter). |
+| P01-UC05 | CRITICAL_BATTERY | Non-essential activity reduced/disabled once battery crosses a frozen threshold. | SOL-016 | DEC-13 (battery operating window, currently `ASSUMED` firmware threshold ~3.4 V) | DESIGN_INPUT_REQUIRED — the ~3.4 V firmware threshold in the decision register is an `ASSUMED` placeholder, not frozen; needs a real cell spec (P01-R04) before this scenario's trigger point is real. |
+| P01-UC06 | USB_MAINTENANCE | Deterministic priority/reverse-current behavior with USB, solar and battery all potentially present. | SOL-001, SOL-002 | DEC-01/DEC-02 (RESEARCH_REQUIRED, P01-R01) | RESEARCH_REQUIRED — this is exactly the "source-state table (USB-only/solar-only/both/neither/insertion-removal)" DEC-01/DEC-02 still need; this scenario cannot close before that table exists. |
+| P01-UC07 | RECOVERY | Depleted battery, brownout, charger fault and source-return recovery behavior. | SOL-014 | None yet | OPEN — no brownout/recovery state exists in `05_power/power_state_model.md`'s current SLEEP→...→SLEEP cycle; this is a net-new state-machine question, not yet raised as a decision. |
+
+## Status
+
+Seven scenarios required by the revision; **none are closed**. Two (P01-UC03, P01-UC04, P01-UC07) don't yet have a corresponding decision ID at all — they are genuinely new gaps this scaffolding surfaces, not previously-tracked items. This file does not resolve any of them; it exists so a returned research-project closure package has a defined scenario to close against, per the revision's own mandatory chain ("no component selection substitutes for undefined use context").

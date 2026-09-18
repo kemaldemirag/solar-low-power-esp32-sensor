@@ -1,6 +1,6 @@
 # PROJECT-01 Board-Level Power Budget — INITIAL
 
-Per the portfolio workflow governance report (P01-06), re-scoped under the 17.09.2026 REFERENCE_BASELINE. Defines the *structure* of the board-level sleep-current budget and its reproducible calculation, per `docs/00_shared/engineering_rules.md` #4 ("prefer scripts and reproducible calculations over manually typed final numbers"). **2026-09-18 (batch 4):** closing DEC-01/DEC-02/DEC-04 (external handoff document) both added a sixth sleep-current term (the arbitration stage's own quiescent current) and **reopened the regulator term to `OPEN`** (TPS7A02 dropped, replacement not yet selected) — the sleep-current total computed on 2026-09-17 is retracted again, honestly, rather than kept as a stale number. This is the second retraction in this document's history; both were caused by evidence that arrived *after* an earlier total looked "done."
+Per the portfolio workflow governance report (P01-06), re-scoped under the 17.09.2026 REFERENCE_BASELINE. Defines the *structure* of the board-level sleep-current budget and its reproducible calculation, per `docs/00_shared/engineering_rules.md` #4 ("prefer scripts and reproducible calculations over manually typed final numbers"). **2026-09-18 (batch 4):** closing DEC-01/DEC-02/DEC-04 (external handoff document) both added a sixth sleep-current term (the arbitration stage's own quiescent current) and **reopened the regulator term to `OPEN`** (TPS7A02 dropped, replacement not yet selected) — the sleep-current total computed on 2026-09-17 is retracted again, honestly, rather than kept as a stale number. This is the second retraction in this document's history; both were caused by evidence that arrived *after* an earlier total looked "done." **2026-09-18 (batch 5, revised handoff):** DEC-01/DEC-02 were downgraded from `DECIDED (candidate)` back to `RESEARCH_REQUIRED` — no arbitration part is selected, and the sixth term's ≈11 µA value is relabeled `ASSUMED` (placeholder) rather than `SOURCE_SUPPORTED (handoff-relayed)`. The total remains not computable either way, since the regulator term was already `OPEN`.
 
 Traces to: SOL-001, SOL-002, SOL-004, SOL-005, SOL-015. Consumes state timing from `05_power/power_state_model.md` (P01-05) and the wake-trigger candidate under SOL-007/DEC-07.
 
@@ -19,7 +19,7 @@ I_sleep_total = I_esp32_sleep + I_regulator_Iq + I_divider_leakage + I_sensor_st
 | `I_divider_leakage` | Battery-voltage divider leakage | SOL-005, SOL-015 | REF-01 (design choice, not a datasheet term) | **DECISION_SUPPORTED — 0 µA.** GPIO-gated per DEC-05. |
 | `I_sensor_standby` | Sensor sleep-mode current (BME280, DEC-06) | SOL-006, SOL-013, SOL-015 | REF-11 | **SOURCE_SUPPORTED (typical) — 0.1 µA** (0.3 µA max). Bosch BST-DS002. |
 | `I_charger_quiescent` | MCP73871 quiescent draw during no-solar/no-USB (battery-only) operation | SOL-015 | REF-09 | **CLOSED (GAP-08) — 30 µA typ (40 µA max).** IDISCHARGE @ VBAT=Power Out, No Load. |
-| `I_arbitration_Iq` | External ideal-diode-OR stage (LTC4412 + P-FET) quiescent current | SOL-001, SOL-002, SOL-015 | — (handoff document, batch 4) | **SOURCE_SUPPORTED (handoff-relayed) — ≈11 µA.** New term, added 2026-09-18 when DEC-01/DEC-02 selected an external arbitration stage (MCP73871 has only one physical input — no internal USB/solar arbitration exists). Described as "documented" in the handoff but not independently opened by this session against LTC4412's primary datasheet. |
+| `I_arbitration_Iq` | External ideal-diode-OR / mux stage quiescent current (specific part not selected) | SOL-001, SOL-002, SOL-015 | — (handoff document, batch 4/5) | **ASSUMED — ≈11 µA placeholder.** Term added 2026-09-18 (batch 4) when DEC-01/DEC-02 pointed to an external arbitration stage (MCP73871 has only one physical input — no internal USB/solar arbitration exists). Downgraded 2026-09-18 (batch 5): DEC-01/DEC-02 reverted to `RESEARCH_REQUIRED` under the revised handoff's seed-candidate rule — LTC4412 (~11 µA "documented" in a handoff, not independently opened) and TPS2113A-class both remain unselected. The ≈11 µA figure is kept only as a working placeholder pending that comparison, not as evidence for a chosen part. |
 
 **Active-phase current** (drawn during `SENSOR_POWER_ON` through `PERIPHERAL_SHUTDOWN` in the power-state model):
 
@@ -55,7 +55,7 @@ sleep.total_ua()
 
 - SOL-005 (gated vs. always-on divider): **decided** — DEC-05, GPIO-gated, `I_divider_leakage = 0`.
 - SOL-007 (wake-trigger source and mode): **decided** — DEC-07, RTC-only, Deep-sleep-with-RTC-memory. `t_sleep` still numerically unassigned.
-- SOL-001/SOL-002 (solar/USB arbitration): **decided (candidate)** — DEC-01/DEC-02, LTC4412+P-FET ideal-diode-OR, ~11 µA term added above.
+- SOL-001/SOL-002 (solar/USB arbitration): **RESEARCH_REQUIRED (downgraded batch 5)** — DEC-01/DEC-02, no part selected; ~11 µA ASSUMED placeholder term added above pending the separate research project's comparison.
 - SOL-004 (regulator topology): **decided (topology only)** — DEC-04, single ≥500 mA regulator replaces TPS7A02; part selection is the actual remaining blocker for this budget.
 
 ## 4. Sleep-current total: not computable
@@ -71,7 +71,7 @@ Energy-surplus/neutral/deficit scenarios (SOL-016) concern the *generation* side
 - `I_regulator_Iq`: OPEN — the actual current blocker on this budget. Needs a ≥500 mA regulator selection with its IQ sourced.
 - Active-phase current (`I_active`) and most of its duration (`t_active`): OPEN.
 - Duty-cycle period (`t_sleep`): OPEN.
-- `I_arbitration_Iq`: SOURCE_SUPPORTED (handoff-relayed) only, ~11 µA candidate — not independently verified this session.
+- `I_arbitration_Iq`: ASSUMED only, ~11 µA placeholder — no part selected (DEC-01/DEC-02 RESEARCH_REQUIRED as of batch 5), not independently verified this session.
 - SOL-005 gated-vs-always-on divider decision: **decided** (DEC-05, GPIO-gated).
 
 No value in this budget may be marked `VERIFIED` without measurement evidence, per `docs/00_shared/evidence_policy.md`.

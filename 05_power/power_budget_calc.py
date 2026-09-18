@@ -8,11 +8,19 @@ still open. Fill in the dataclass fields once a value is sourced from a
 selected component's datasheet (see 02_requirements/reference_classification.md)
 or a bench measurement, then re-run this script for a reproducible result.
 
-2026-09-18: SleepCurrentBudget gained a sixth field, i_arbitration_iq_ua,
-after DEC-01/DEC-02 added an external ideal-diode-OR stage (source
-arbitration ahead of the charger), and i_regulator_iq_ua reverted to None
-after DEC-04 dropped TPS7A02 (200 mA max, insufficient for the ESP32's
-active-mode current) without yet selecting its >=500 mA replacement.
+2026-09-18 (batch 4): SleepCurrentBudget gained a sixth field,
+i_arbitration_iq_ua, after DEC-01/DEC-02 added an external ideal-diode-OR
+stage (source arbitration ahead of the charger), and i_regulator_iq_ua
+reverted to None after DEC-04 dropped TPS7A02 (200 mA max, insufficient
+for the ESP32's active-mode current) without yet selecting its
+>=500 mA replacement.
+
+2026-09-18 (batch 5): DEC-01/DEC-02 were downgraded from DECIDED
+(candidate) back to RESEARCH_REQUIRED per the revised handoff's
+stricter seed-candidate rule (no part is selected; LTC4412 is one of
+two unselected seed candidates). i_arbitration_iq_ua's ~11 uA figure is
+kept as an ASSUMED placeholder, not SOURCE_SUPPORTED evidence for a
+selected part - see 06_decisions/decision_register.md DEC-01/DEC-02.
 """
 
 from dataclasses import dataclass, fields
@@ -25,7 +33,7 @@ class SleepCurrentBudget:
     i_divider_leakage_ua: float | None = None   # SOL-005/015, 0 per DEC-05 (GPIO-gated)
     i_sensor_standby_ua: float | None = None    # SOL-006/013/015, REF-11 (BME280, 0.1 uA typ)
     i_charger_quiescent_ua: float | None = None  # SOL-015, REF-09 (MCP73871 IDISCHARGE, 30 uA typ / 40 uA max @ VBAT=Power Out No Load) - GAP-08 CLOSED
-    i_arbitration_iq_ua: float | None = None    # SOL-001/002/015 (LTC4412 ideal-diode-OR, ~11 uA documented per handoff, DEC-01/DEC-02 2026-09-18) - SOURCE_SUPPORTED (handoff-relayed)
+    i_arbitration_iq_ua: float | None = None    # SOL-001/002/015 - ASSUMED placeholder ~11 uA (LTC4412 unselected seed candidate, DEC-01/DEC-02 downgraded to RESEARCH_REQUIRED, batch 5 2026-09-18)
 
     def open_terms(self) -> list[str]:
         return [f.name for f in fields(self) if getattr(self, f.name) is None]
