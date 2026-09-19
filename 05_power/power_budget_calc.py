@@ -21,6 +21,17 @@ stricter seed-candidate rule (no part is selected; LTC4412 is one of
 two unselected seed candidates). i_arbitration_iq_ua's ~11 uA figure is
 kept as an ASSUMED placeholder, not SOURCE_SUPPORTED evidence for a
 selected part - see 06_decisions/decision_register.md DEC-01/DEC-02.
+
+2026-09-19 (batch 7): DEC-01/DEC-02 promoted to DECIDED (candidate) --
+TI TPS2121 replaces the unselected LTC4412/TPS2113A-class candidates,
+but TPS2121's own Iq is not quantified in the returned research
+package, so i_arbitration_iq_ua stays None/OPEN (now attributed to an
+unquantified TPS2121, not LTC4412). i_regulator_iq_ua stays None/OPEN
+too -- DEC-04's part is PROVISIONAL (Richtek RT9080), not DECIDED, so
+its Iq is not yet evidence for closing this term. SleepCurrentBudget
+gained a seventh field, i_load_switch_leakage_ua, after DEC-12 selected
+TI TPS22916 (10 nA leakage, SOURCE_SUPPORTED) for I2C pull-up rail
+gating -- see decision_register.md DEC-12.
 """
 
 from dataclasses import dataclass, fields
@@ -29,11 +40,12 @@ from dataclasses import dataclass, fields
 @dataclass
 class SleepCurrentBudget:
     i_esp32_sleep_ua: float | None = None       # SOL-007/015, REF-07 (10 uA, Deep-sleep+RTC memory, DEC-07)
-    i_regulator_iq_ua: float | None = None      # SOL-004/015 - OPEN: TPS7A02 dropped (DEC-04, 2026-09-18), replacement part not yet selected
+    i_regulator_iq_ua: float | None = None      # SOL-004/015 - OPEN: TPS7A02 dropped (DEC-04); part PROVISIONAL (RT9080, batch 7), not DECIDED - Iq not yet evidence for this term
     i_divider_leakage_ua: float | None = None   # SOL-005/015, 0 per DEC-05 (GPIO-gated)
     i_sensor_standby_ua: float | None = None    # SOL-006/013/015, REF-11 (BME280, 0.1 uA typ)
-    i_charger_quiescent_ua: float | None = None  # SOL-015, REF-09 (MCP73871 IDISCHARGE, 30 uA typ / 40 uA max @ VBAT=Power Out No Load) - GAP-08 CLOSED
-    i_arbitration_iq_ua: float | None = None    # SOL-001/002/015 - ASSUMED placeholder ~11 uA (LTC4412 unselected seed candidate, DEC-01/DEC-02 downgraded to RESEARCH_REQUIRED, batch 5 2026-09-18)
+    i_charger_quiescent_ua: float | None = None  # SOL-015, REF-09 (MCP73871 IDISCHARGE, 30 uA typ / 40 uA max @ VBAT=Power Out No Load) - GAP-08 CLOSED; provisional/at-risk pending DEC-03's reopened MCP73871/Voc conflict (batch 7)
+    i_arbitration_iq_ua: float | None = None    # SOL-001/002/015 - OPEN: DEC-01/DEC-02 DECIDED (candidate) = TPS2121 (batch 7), but TPS2121's own Iq is unquantified in the returned research; not yet SOURCE_SUPPORTED
+    i_load_switch_leakage_ua: float | None = None  # SOL-006/013/015 - SOURCE_SUPPORTED 0.01 uA (10 nA) via TI TPS22916 datasheet, DEC-12 (batch 7); negligible but not hardcoded here, per this project's evidence discipline
 
     def open_terms(self) -> list[str]:
         return [f.name for f in fields(self) if getattr(self, f.name) is None]
