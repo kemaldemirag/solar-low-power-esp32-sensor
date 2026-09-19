@@ -32,6 +32,13 @@ its Iq is not yet evidence for closing this term. SleepCurrentBudget
 gained a seventh field, i_load_switch_leakage_ua, after DEC-12 selected
 TI TPS22916 (10 nA leakage, SOURCE_SUPPORTED) for I2C pull-up rail
 gating -- see decision_register.md DEC-12.
+
+2026-09-19 (batch 8): the user resolved DEC-03's architecture conflict
+by replacing MCP73871 with TI BQ24074. i_charger_quiescent_ua reverts
+to None/OPEN -- the previous 30 uA figure was MCP73871's own IDISCHARGE
+spec, which does not carry over to a different part. BQ24074's own
+quiescent-current figure has not been sourced from its datasheet
+(SLUS810K) yet -- see decision_register.md DEC-03.
 """
 
 from dataclasses import dataclass, fields
@@ -43,7 +50,7 @@ class SleepCurrentBudget:
     i_regulator_iq_ua: float | None = None      # SOL-004/015 - OPEN: TPS7A02 dropped (DEC-04); part PROVISIONAL (RT9080, batch 7), not DECIDED - Iq not yet evidence for this term
     i_divider_leakage_ua: float | None = None   # SOL-005/015, 0 per DEC-05 (GPIO-gated)
     i_sensor_standby_ua: float | None = None    # SOL-006/013/015, REF-11 (BME280, 0.1 uA typ)
-    i_charger_quiescent_ua: float | None = None  # SOL-015, REF-09 (MCP73871 IDISCHARGE, 30 uA typ / 40 uA max @ VBAT=Power Out No Load) - GAP-08 CLOSED; provisional/at-risk pending DEC-03's reopened MCP73871/Voc conflict (batch 7)
+    i_charger_quiescent_ua: float | None = None  # SOL-015 - OPEN (reopened batch 8): MCP73871 replaced by TI BQ24074 (DEC-03); the old 30 uA MCP73871 IDISCHARGE figure (GAP-08) does not carry over; BQ24074's own quiescent-current spec not yet sourced
     i_arbitration_iq_ua: float | None = None    # SOL-001/002/015 - OPEN: DEC-01/DEC-02 DECIDED (candidate) = TPS2121 (batch 7), but TPS2121's own Iq is unquantified in the returned research; not yet SOURCE_SUPPORTED
     i_load_switch_leakage_ua: float | None = None  # SOL-006/013/015 - SOURCE_SUPPORTED 0.01 uA (10 nA) via TI TPS22916 datasheet, DEC-12 (batch 7); negligible but not hardcoded here, per this project's evidence discipline
 
