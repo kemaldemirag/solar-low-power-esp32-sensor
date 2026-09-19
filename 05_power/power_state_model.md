@@ -34,7 +34,7 @@ Exactly one pass through this sequence occurs per wake trigger; there is no in-c
 |---|---|---|---|---|
 | `SLEEP` | Previous cycle's `PERIPHERAL_SHUTDOWN` complete, or first boot | ESP32 in Deep-sleep with RTC timer + RTC memory retained (10 µA, SOURCE_SUPPORTED — see §3); all gated rails off | Wake trigger fires | SOL-007 |
 | `WAKE` | Wake trigger fires | MCU core resumes; peripherals re-initialize (I2C peripheral configured fresh, per contract §3/§6 — no state assumed to survive sleep) | Peripheral re-init complete | SOL-007, SOL-013 |
-| `SENSOR_POWER_ON` | `WAKE` complete | Enable sensor power-gating rail **(⚠ DEC-12 open — see below: which rail(s), including I2C pull-ups, are gated together is not yet decided)** | Rail enabled | SOL-013 |
+| `SENSOR_POWER_ON` | `WAKE` complete | Enable `SENSOR_3V3` (sensor rail + I2C pull-ups together, via TPS22916 — **DEC-12, `DECIDED (candidate)`, batch 7**; see §5a) | Rail enabled | SOL-013 |
 | `STABILIZE` | Rail enabled | Wait for stabilization delay — SOURCE_SUPPORTED at 2 ms (BME280 startup-to-first-communication, BST-DS002; see contract §6) | Delay elapsed | SOL-013 |
 | `I2C_INIT_DISCOVERY` | Stabilization elapsed | Targeted address probe per contract §3 | ACK → `MEASURE`; NACK/timeout → `FAULT_MARK` | SOL-010, SOL-011 |
 | `FAULT_MARK` | Probe NACK/timeout | Mark this cycle's sensor channel `FAULT` (contract §4); increment the cross-cycle consecutive-fault counter (DEC-09); no in-cycle retry | Immediately → `TELEMETRY` | SOL-011 |
@@ -59,9 +59,9 @@ The numeric duty-cycle period (the interval between RTC wakes) is not fixed by t
 
 Per-state duration and current draw feed the board-level sleep-current budget (P01-06, `05_power/power_budget.md`). No duration or current value is assigned in this document — see SOL-015 and the scenario matrix row "Sleep-current budget composition." Assigning them here before component selection would violate the evidence policy's prohibition on unsupported numeric values.
 
-## 5a. Open hardware-safety finding (DEC-12, 2026-09-17)
+## 5a. Hardware-safety finding (DEC-12) — `DECIDED (candidate)`, 2026-09-19 batch 7
 
-`SENSOR_POWER_ON`/`PERIPHERAL_SHUTDOWN` gate the sensor's power rail every cycle. BME280's datasheet forbids its I2C pins being held at logic-high while VDDIO is off (ESD-diode overcurrent risk). If the I2C pull-ups sit on an always-on rail while only the sensor's VDDIO is gated (the interface contract's current implicit assumption, `04_interface/i2c_interface_contract.md` §6), every `SLEEP` period places the bus in exactly that forbidden state. This model's `SLEEP`/`SENSOR_POWER_ON`/`PERIPHERAL_SHUTDOWN` states must be read together with whichever DEC-12 candidate is eventually decided (gate the pull-ups too, vs. never gate VDDIO) — until then, this state machine does not fully specify a safe hardware implementation.
+`SENSOR_POWER_ON`/`PERIPHERAL_SHUTDOWN` gate the sensor's power rail every cycle. BME280's datasheet forbids its I2C pins being held at logic-high while VDDIO is off (ESD-diode overcurrent risk). **Resolution:** the I2C pull-ups are gated together with the sensor's VDD+VDDIO on a single switched rail (`SENSOR_3V3`), via a TI TPS22916 load switch (10 nA leakage, integrated output discharge, reverse blocking) — this replaces the earlier implicit assumption that pull-ups sit on an always-on rail. `SENSOR_POWER_ON` enables `SENSOR_3V3`; `PERIPHERAL_SHUTDOWN` disables it, with TPS22916's own output discharge actively pulling it down and ESP32's I2C GPIOs forced safe/high-Z beforehand. **Remaining:** PV-04 (I2C back-powering/off-state leakage bench measurement) is `PHYSICAL_VALIDATION_REQUIRED` before this state machine's hardware implementation is fully validated — see `06_decisions/decision_register.md` DEC-12.
 
 ## 6. Traceability
 
@@ -78,7 +78,7 @@ Per-state duration and current draw feed the board-level sleep-current budget (P
 - Wake-trigger source and mode: **decided** (DEC-07, RTC-only, Deep-sleep-with-RTC-memory @ 10 µA — SOURCE_SUPPORTED); duty-cycle period value still OPEN.
 - Stabilization delay magnitude: **decided, SOURCE_SUPPORTED** — 2 ms (BME280 BST-DS002).
 - Consecutive-fault escalation behavior: **decided** (DEC-09) — telemetry-status escalation only, no state-machine or timing change.
-- Per-state timing/current values: sleep-current total is **not computable** as of 2026-09-18 batch 4 (`05_power/power_budget.md` §4) — GAP-08's `I_charger_quiescent` term remains CLOSED, but DEC-04 reopened the regulator term and added a new arbitration term; active-phase values remain OPEN except the 2 ms stabilization delay.
-- **I2C pull-up rail vs. sensor power-gating rail (DEC-12): OPEN, hardware-safety finding** — see §5a. This state machine is not implementation-safe until resolved.
+- Per-state timing/current values: sleep-current total is **not computable** as of 2026-09-19 batch 7 (`05_power/power_budget.md` §4) — `I_regulator_Iq` (PROVISIONAL part, RT9080) and `I_arbitration_Iq` (DECIDED candidate TPS2121, Iq unquantified) both remain OPEN; `I_load_switch_leakage` (TPS22916) newly CLOSED; active-phase values remain OPEN except the 2 ms stabilization delay.
+- **I2C pull-up rail vs. sensor power-gating rail (DEC-12): `DECIDED (candidate)`, batch 7** — TPS22916 gates `SENSOR_3V3` (see §5a); PV-04 (physical) still required before this state machine is fully implementation-safe.
 
 No state in this model may be marked `IMPLEMENTED` or `VERIFIED` without the corresponding firmware artifact and evidence path required by `docs/00_shared/evidence_policy.md`.
