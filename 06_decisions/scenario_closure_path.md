@@ -77,7 +77,7 @@ Research session must return a **closure-ready package** for each blocker:
 | **P01-R03** (DEC-04 part) | Specific ≥500 mA regulator part, IQ + key operating parameters under relevant conditions, rationale vs alternatives | `I_regulator_iq` no longer OPEN; C01/C06 runnable |
 | **P01-R04** (DEC-13) | Protected-cell boundary vs standalone protection comparison, selected boundary, cutoff/leakage/failure assumptions from primary datasheet evidence | Frozen battery operating window/threshold inputs for C04/UC02/UC05 |
 | **P01-R05** (DEC-12) | Chosen safe I2C power/gating policy (no VDDIO-off + pins-high hazard), updated interface behavior constraints, current impact terms | Hardware-safety hazard closed, C01 model row assumptions frozen |
-| **P01-R06** (DEC-11) | OVP candidate selection with missing IQ/leakage evidence and trip/disconnect behavior fit for hot-plug use | DEC-11 no longer BLOCKED; C07 leakage term closed |
+| **P01-R06** (DEC-11) | OVP candidate selection with missing Iq/leakage evidence and trip/disconnect behavior fit for hot-plug use | DEC-11 no longer BLOCKED; C07 leakage term closed |
 
 ### PR #2 (batches 6–8): immediately usable vs handoff-needed
 
